@@ -132,7 +132,6 @@ process_put_request(ReqData, State, Data) ->
 	Time = extract_val(Data, "time"),
 	Body = extract_string(Data, "body"),
 	Headers = lists:map(fun(Tuple)->extract_key_val_pair(Tuple) end, extract_array(Data, "headers")),
-
 	case 
 		erlang:is_integer(Key) andalso 
 		lists:member(Method, [get, put, post, delete]) andalso

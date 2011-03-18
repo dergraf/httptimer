@@ -46,8 +46,13 @@ retrieve(TimerId) ->
 	end.
 
 add(Timer) ->
+	{ok,RetrievalPeriod} = application:get_env(httptimer, retrieval_period),
 	case timer_store:insert(Timer#httptimer{status=inactive}) of
-		true -> Timer#httptimer.id;
+		true ->
+			case (Timer#httptimer.time - date_util:epoch()) < RetrievalPeriod of
+				true -> schedule_timer(Timer)
+			end,
+			Timer#httptimer.id;
 		false -> false
 	end.
 

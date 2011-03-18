@@ -18,7 +18,7 @@
 		  {port, 8000}, 		%% Webmachine Port 
 		  {retrieval_period, 30000},	%% Check all n millis for new timers to schedule
 		  {timer_freshness, 60},	%% only schedule timers needed to be executed within the next n seconds
-		  {user, "httptimer"},		%% username used for HTTP Basic Auth (DELETE and PUT)
+		  {user, "username"},		%% username used for HTTP Basic Auth (DELETE and PUT)
 		  {password,"password"}		%% password used for HTTP Basic Auth (DELETE and PUT)
 	  ]}
  ]}.

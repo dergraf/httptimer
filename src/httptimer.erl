@@ -35,6 +35,8 @@ ensure_started(App) ->
 %% @doc Starts the app for inclusion in a supervisor tree
 start_link() ->
     ensure_started(crypto),
+    ensure_started(inets),
+    mnesia:create_schema([node()]),
     ensure_started(mnesia),
     ensure_started(mochiweb),
     ensure_started(ibrowse),
@@ -46,9 +48,8 @@ start_link() ->
 %% @spec start() -> ok
 %% @doc Start the httptimer server.
 start() ->
-    ensure_started(sasl),
     ensure_started(crypto),
-    
+    ensure_started(inets),
     mnesia:create_schema([node()]),
     ensure_started(mnesia),
     ensure_started(mochiweb),
@@ -68,5 +69,6 @@ stop() ->
     application:stop(ibrowse),
     application:stop(mochiweb),
     application:stop(mnesia),
+    application:stop(inets),
     application:stop(crypto),
     Res.
