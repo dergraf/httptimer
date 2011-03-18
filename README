@@ -32,7 +32,7 @@ $.ajaxSetup({
 // -------------------------
 var data = {
 	// url to be requested by httptimer
-	url : 'http://localhost:8000/timer_test/123',
+	url : 'http://your.webapp.com/a/resource',
 	// http method used for this request
 	method : 'post',
 	// http headers set for this request
@@ -41,7 +41,7 @@ var data = {
 	body : 'hello world',
 	// api key
 	key : 1234567,
-	// execution time for this request (unix timestamp)
+	// execution time for this request (unix timestamp) 
 	time :  now() + 200
 };
 // Use http PUT for scheduling a new timer
