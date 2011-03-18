@@ -1,0 +1,64 @@
+httptimer Application:
+Schedule Http Requests using the simple JSON API
+httptimer depends on webmachine, mochiweb, ibrowse, and Erlang/OTP of course.
+
+HTTP PUT: Store new Timer
+{
+	"url" : "http://www.google.com", // Request Url
+	"method" : "GET", // Request Method
+	"headers" : [ // Request Headers
+		{"Content-Type" : "application/json"}
+	],
+	"body" : "myreqdata=knockknock", // Request Body
+	"key" : 123456, // API Key
+	"time" : 1300213890 // Time of executing Request
+} returns TimerId
+
+HTTP GET: Retrieve pending Timer
+{
+	"key" : 123456 // API Key
+	"timerId" : TimerId // Id returned by the PUT request
+}
+
+HTTP DELETE: Delete pending Timer
+{
+	"key" : 123456 // API Key
+	"timerId" : TimerId // Id returned by the PUT request
+}
+
+PUT and Delete Requests must be authenticated (currently through HTTP Basic Auth). Therefore change the given username and password within the httptimer.app file
+
+
+You should find in this directory:
+
+README : this file
+Makefile : simple make commands
+rebar : the Rebar build tool for Erlang applications
+rebar.config : configuration for Rebar
+start.sh : simple startup script for running httptimer
+/ebin
+  /httptimer.app : the Erlang app specification
+/src
+  /httptimer.erl : Startup module
+  /httptimer_app.erl : base module for the Erlang application
+  /httptimer_sup.erl : OTP supervisor for the application
+  /httptimer_resource.erl : the httptimer Webmachine resource
+  /httptimer.hrl : headerfile defining the Timer record
+  /date_util.erl : helper functions for handling time and date
+  /timer_manager.erl : httptimer Backend module
+  /timer_store.erl : Mnesia Frontend Module
+  /test_resource.erl : simple Webmachine resource used for some manual tests
+/priv
+  /dispatch.conf : the Webmachine URL-dispatching table
+
+You probably want to do one of a couple of things at this point:
+
+Build the httptimer application:
+   $ make
+   - or -
+   $ ./rebar compile
+
+Start up the httptimer application:
+   $ ./start.sh
+
+
