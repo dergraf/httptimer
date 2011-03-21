@@ -5,9 +5,47 @@ Schedules HTTP Requests using a simple JSON API.
 httptimer depends on webmachine, ibrowse, and Erlang/OTP of course.
 
 
+How to use the JSON API of httptimer using curl
+===============================================
+Please consider the following conventions:
+<<key>> == Your API key (as integer)
+<<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
+<<timerId>> == is stored within the PUT-result 
 
-A small tutorial how to use the JSON API of httptimer using jQuery
-==================================================================
+
+1. Scheduling a new Timer
+-------------------------
+curl -X PUT -u username:password http://localhost:8000/timer 
+	-H "Content-type: application/json" 
+	--data '{"url":"http://your.webapp.com/a/resource", "method":"get", "headers":[], "key":<<key>>, "time":<<time>>, "body":"hello world"}'
+
+The PUT request returns a JSON object containing the <<timerId>> (e.g. {"timerId":76223427})
+
+
+2. Retrieving timer information
+-------------------------------
+curl -X GET -u username:password http://localhost:8000/timer 
+	-H "Content-type: application/json"
+       	--data '{"key":<<key>>, "timerId":<<timerId>>}'
+
+The GET request returns a JSON object similar to the following:
+{"url":"http://localhost:8000/timer_test/","time":1300904795,"created_on":1300738685,"headers":{},"method":"get","body":"hello world"}
+
+
+3. Deleting a timer
+-------------------
+curl -X DELETE -u username:password http://localhost:8000/timer 
+	-H "Content-type: application/json"
+       	--data '{"key":<<key>>, "timerId":<<timerId>>}'
+
+
+
+How to use the JSON API of httptimer using jQuery
+=================================================
+<<key>> == Your API key (as integer)
+<<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
+<<timerId>> == is stored within the PUT-result 
+
 // Calculates the unix timestamp
 function now() {
 	return  Math.round(new Date().getTime() / 1000);
@@ -22,7 +60,7 @@ $.ajaxSetup({
 	contentType : 'application/json',
 	// setting the dataType used within the response
 	dataType : 'json',
-	// enable http basic auth within the requests
+	// enable http basic auth within the requests (username:password)
 	beforeSend : function(jqXHR) {
 		jqXHR.setRequestHeader('Authorization', 'Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
 	},
@@ -40,15 +78,14 @@ var data = {
 	// request body
 	body : 'hello world',
 	// api key
-	key : 1234567,
+	key : <<key>>
 	// execution time for this request (unix timestamp) 
-	time :  now() + 200
+	time :  <<time>>
 };
 // Use http PUT for scheduling a new timer
 $.ajax({ type : 'PUT', data : JSON.stringify(data), 
 	success : function(data, textStatus, jqXHR) {
-			alert(data.timerId); 
-	// the timerId must be used to later retrieve information about the timer or if the timer should be deleted. For the further documentation I use TIMERID whenever I refer to such a timerId.
+			alert(data.timerId); // echo the <<timerId>>
 	}
 });
 
@@ -56,9 +93,9 @@ $.ajax({ type : 'PUT', data : JSON.stringify(data),
 // -------------------------------
 var data = {
 	// api key
-	key = 1234567,
+	key = <<key>>,
 	// timer id
-	timerId = TIMERID
+	timerId = <<timerId>>
 };
 
 // Use http GET for retrieving the information of a scheduled timer
@@ -68,13 +105,16 @@ $.ajax({ type : 'GET', data : JSON.stringify(data)});
 // -------------------
 var data = {
 	// api key
-	key = 1234567,
+	key = <<key>>,
 	// timer id
-	timerId = TIMERID
+	timerId = <<timerId>>
 };
 
 // Use http DELETE for deleting a scheduled timer
 $.ajax({ type : 'DELETE', data : JSON.stringify(data)});
+
+
+
 
 
 You should find in this directory:

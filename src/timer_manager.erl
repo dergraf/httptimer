@@ -45,20 +45,25 @@ retrieve(TimerId) ->
 		badarg -> false
 	end.
 
+
 add(Timer) ->
 	{ok,RetrievalPeriod} = application:get_env(httptimer, retrieval_period),
 	case timer_store:insert(Timer#httptimer{status=inactive}) of
-		true ->
+		true -> %% successfully insert timer
 			case (Timer#httptimer.time - date_util:epoch()) < RetrievalPeriod of
-				true -> schedule_timer(Timer)
-			end,
-			Timer#httptimer.id;
-		false -> false
+				true -> %% immediate schedule (delayed)
+					schedule_timer(Timer),
+					Timer#httptimer.id;
+				false -> %% normal, just return the TimerId 
+					Timer#httptimer.id
+			end;
+		false -> %% error during inserting timer
+			false
 	end.
 
 delete(TimerId) ->
 	 case timer_store:lookup(TimerId) of
-		[#httptimer{tref=TRef}]->
+		[#httptimer{tref=TRef, status=scheduled}]->
 			case timer:cancel(TRef) of
 				{ok, cancel} -> 
 					timer_store:delete(TimerId),
@@ -68,6 +73,10 @@ delete(TimerId) ->
 					error_logger:info_msg("Cannot cancel Timer ~w Error ~w~n", [TRef, Reason]),
 					false
 			end;
+		[#httptimer{tref=TRef, status=inactive}]->
+			timer_store:delete(TimerId),
+			error_logger:info_msg("Unscheduled Timer deleted~n", []),
+			true;
 		[] ->
 			error_logger:info_msg("Cannot find a Timer for given Id ~w~n", [TimerId]),
 			false;
