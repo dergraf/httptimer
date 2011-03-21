@@ -10,14 +10,16 @@ How to use the JSON API of httptimer using curl
 Please consider the following conventions:
 <<key>> == Your API key (as integer)
 <<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
-<<timerId>> == is stored within the PUT-result 
+<<timerId>> == is stored within the PUT-result (as integer)
+<<requestUrl>> == The url to request (as string)
+
 
 
 1. Scheduling a new Timer
 -------------------------
 curl -X PUT -u username:password http://localhost:8000/timer 
 	-H "Content-type: application/json" 
-	--data '{"url":"http://your.webapp.com/a/resource", "method":"get", "headers":[], "key":<<key>>, "time":<<time>>, "body":"hello world"}'
+	--data '{"url":"<<requestUrl>>, "method":"get", "headers":[], "key":<<key>>, "time":<<time>>, "body":"hello world"}'
 
 The PUT request returns a JSON object containing the <<timerId>> (e.g. {"timerId":76223427})
 
@@ -45,11 +47,8 @@ How to use the JSON API of httptimer using jQuery
 <<key>> == Your API key (as integer)
 <<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
 <<timerId>> == is stored within the PUT-result 
+<<requestUrl>> == The url to request (as string)
 
-// Calculates the unix timestamp
-function now() {
-	return  Math.round(new Date().getTime() / 1000);
-}
 
 // 0. Ajax Settings
 // ----------------
@@ -70,7 +69,7 @@ $.ajaxSetup({
 // -------------------------
 var data = {
 	// url to be requested by httptimer
-	url : 'http://your.webapp.com/a/resource',
+	url : <<requestUrl>>,
 	// http method used for this request
 	method : 'post',
 	// http headers set for this request
