@@ -33,6 +33,8 @@ start() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) ->
 	timer_store:init(),
+	%% ifdef...
+	ets:new(test_timer_store, [named_table, public]),
 	{ok,TimerFreshness} = application:get_env(httptimer, timer_freshness),
 	{ok,RetrievalPeriod} = application:get_env(httptimer, retrieval_period),
 	spawn(fun() -> retrieve_next_active_timers({RetrievalPeriod, TimerFreshness}) end),
@@ -73,7 +75,7 @@ delete(TimerId) ->
 					error_logger:info_msg("Cannot cancel Timer ~w Error ~w~n", [TRef, Reason]),
 					false
 			end;
-		[#httptimer{tref=TRef, status=inactive}]->
+		[#httptimer{tref=_TRef, status=inactive}]->
 			timer_store:delete(TimerId),
 			error_logger:info_msg("Unscheduled Timer deleted~n", []),
 			true;

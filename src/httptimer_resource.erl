@@ -30,47 +30,13 @@
 
 -include_lib("webmachine/include/webmachine.hrl").
 
-init([]) -> 
-	{ok, undefined}.
-
-
-
-%% Helper Functions
-extract_val(List, Key) ->
-	case lists:keyfind(Key, 1, List) of
-		false -> undefined;
-		{_, Val} -> Val
-	end.
-
-extract_string(List, Key) ->
-	case extract_val(List, Key) of
-		undefined -> "";
-		Val -> 
-			case is_list(Val) of
-				false -> "";
-				true -> Val
-			end
-	end.
-
-extract_array(List, Key) ->
-	case extract_val(List, Key) of
-		undefined -> [];
-		{array, Val} -> Val
-	end.
-
-extract_key_val_pair({struct,[{Key,Value}]}) -> {Key, Value}.
-
-extract_atom(List, Key) ->
-	case extract_string(List, Key) of
-		"" -> undefined;
-		Val -> list_to_atom(Val)
-	end.
+init([]) ->
+	{{trace, "/tmp"}, []}.	
+	%%{ok, undefined}.
 
 append_json_response(ReqData, Data) ->
 	wrq:append_to_response_body(
 		mochijson:encode({struct, [Data]}), ReqData).
-
-
 
 content_types_provided(ReqData, State) ->
 	{[{"application/json", to_json}], ReqData, State}.
@@ -86,31 +52,21 @@ to_json(ReqData, Timer) ->
 	]},
 	{mochijson:encode(Result), ReqData, Result}.
 
-
 %% GET Request
 resource_exists(ReqData, State) ->
-	case catch mochijson:decode(wrq:req_body(ReqData)) of
-		{struct, Data} -> process_get_request(ReqData, State, Data);
-		_ ->{false, append_json_response(ReqData,{error, "Please check your JSON Request"}), State}
-	end.
-	
-process_get_request(ReqData, State, Data) ->
-	Key = extract_val(Data, "key"),
-	TimerId = extract_val(Data, "timerId"),
-
-	case
-		erlang:is_integer(Key) andalso 
-		erlang:is_integer(TimerId) of
-		
-		true ->
-			case timer_manager:retrieve({Key, TimerId}) of
-				false -> {false, ReqData, State};
-				Timer -> {true, ReqData, Timer}
-			end;
-		false ->
-			{false, ReqData, State}
-	end.
-							
+    {Res, NewState} = case wrq:path_info(apikey, ReqData) of
+	undefined -> {false, State};
+	ApiKey ->
+	    case wrq:path_info(timerid, ReqData) of
+		undefined -> {false, State};
+		TimerId ->
+		    case timer_manager:retrieve({ApiKey, TimerId}) of
+			false -> {false, State};
+			Timer -> {true, Timer}
+		    end
+	    end
+    end,
+    {Res, ReqData, NewState}.    
 
 %% PUT Request
 allowed_methods(ReqData, State) ->
@@ -120,67 +76,39 @@ content_types_accepted(ReqData, State) ->
 	{[{"application/json", from_json}], ReqData, State}.
 
 from_json(ReqData, State) ->
-	case catch mochijson:decode(wrq:req_body(ReqData)) of
-		{struct, Data} -> process_put_request(ReqData, State, Data);
-		{error,_} ->{false, append_json_response(ReqData,{error, "Please check your Request"}), State}
- 	end.
+    {Res, NewState} = case wrq:path_info(apikey, ReqData) of
+	undefined -> {false, State};
+	ApiKey ->
+	    case catch mochijson:decode(wrq:req_body(ReqData)) of
+		{struct, Data} ->
+		    case httptimer_helper:extract_httptimer(ApiKey, Data) of
+			false -> {false, State};
+			Timer ->
+			    case timer_manager:add(Timer) of
+				false -> {false, State};
+				{_, TimerId} -> {true, {timerId, TimerId}}
+			    end
+		    end;
+		{error,_} -> {false, State}
+	    end
+    end,
+    {Res, append_json_response(ReqData,NewState), NewState}.
 
-process_put_request(ReqData, State, Data) ->
-	Key = extract_val(Data, "key"),
-	Url = extract_string(Data, "url"),
-	Method = extract_atom(Data, "method"),
-	Time = extract_val(Data, "time"),
-	Body = extract_string(Data, "body"),
-	Headers = lists:map(fun(Tuple)->extract_key_val_pair(Tuple) end, extract_array(Data, "headers")),
-	case 
-		erlang:is_integer(Key) andalso 
-		lists:member(Method, [get, put, post, delete]) andalso
-		erlang:is_integer(Time) andalso Time > 0 of
-		
-		true ->
-			Timer = #httptimer{
-				id = {Key,  erlang:phash2(now())},
-				time = Time, %%date_util:epoch() + Time,
-				created_on = date_util:epoch(),
-				url = Url,
-				headers = Headers,
-				method = Method,
-				body = Body
-			},
-			case timer_manager:add(Timer) of
-				false ->
-					{false, append_json_response(ReqData,{error, "Cannot add Timer"}), State};
-				{_, TimerId} ->
-					{true, append_json_response(ReqData,{timerId, TimerId}), State}
-			end;	
-		false ->
-			{false, append_json_response(ReqData,{error, "Please check your Request"}), State}
-	end.
-
+%% DELETE REQUEST
 delete_resource(ReqData, State) ->
-	case catch mochijson:decode(wrq:req_body(ReqData)) of
-		{struct, Data} -> process_delete_request(ReqData, State, Data);
-		{error,_} -> {false, append_json_response(ReqData,{error, "Please check your Request"}), State}
-	end.
-
-process_delete_request(ReqData, State, Data) ->
-	Key = extract_val(Data, "key"),
-	TimerId = extract_val(Data, "timerId"),
-
-	case
-		erlang:is_integer(Key) andalso 
-		erlang:is_integer(TimerId) of
-		
-		true -> 
-			case timer_manager:delete({Key, TimerId}) of
-				false -> 
-					{false, append_json_response(ReqData, {error, "Cannot cancel Timer"}), State};
-				true ->
-					{true, ReqData, State}
-			end;
-		false ->
-			{false, append_json_response(ReqData, {error, "Please check your Request"}), State}
-	end.
+    {Res, NewState} = case wrq:path_info(apikey, ReqData) of
+	undefined -> {false, State};
+	ApiKey ->
+	    case wrq:path_info(timerid, ReqData) of
+		undefined -> {false, State};
+		TimerId ->
+		    case timer_manager:delete({ApiKey, TimerId}) of
+			false -> {false, State};
+			true -> {true, State}
+		    end
+	    end
+    end,
+    {Res, ReqData, NewState}.    
 
 %% Support for Authorization
 -define(AUTH_HEAD, "Basic realm=HttpTimer").
