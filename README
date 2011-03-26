@@ -8,111 +8,40 @@ httptimer depends on webmachine, ibrowse, and Erlang/OTP of course.
 How to use the JSON API of httptimer using curl
 ===============================================
 Please consider the following conventions:
-<<key>> == Your API key (as integer)
+<<key>> == Your API key
 <<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
-<<timerId>> == is stored within the PUT-result (as integer)
+<<timerId>> == is returned from the PUT request
 <<requestUrl>> == The url to request (as string)
 
 
 
 1. Scheduling a new Timer
 -------------------------
-curl -X PUT -u username:password http://localhost:8000/timer 
+curl -X PUT -u username:password http://localhost:8000/timer/<<key>>
 	-H "Content-type: application/json" 
-	--data '{"url":"<<requestUrl>>, "method":"get", "headers":[], "key":<<key>>, "time":<<time>>, "body":"hello world"}'
+	--data '{"url":"<<requestUrl>>, "method":"get", "headers":[], "time":<<time>>, "body":"hello world"}'
 
-The PUT request returns a JSON object containing the <<timerId>> (e.g. {"timerId":76223427})
+The PUT request returns a JSON object containing the <<timerId>> (e.g. {"timerId":"615E4CABA561394AD7D89CF29EE7AC72"})
 
 
 2. Retrieving timer information
 -------------------------------
-curl -X GET -u username:password http://localhost:8000/timer 
-	-H "Content-type: application/json"
-       	--data '{"key":<<key>>, "timerId":<<timerId>>}'
+curl -X GET -u username:password http://localhost:8000/timer/<<key>>/<<timerId>> 
+	-H "Accept: application/json"
 
 The GET request returns a JSON object similar to the following:
-{"url":"http://localhost:8000/timer_test/","time":1300904795,"created_on":1300738685,"headers":{},"method":"get","body":"hello world"}
+{"url":"http://localhost:8000/timer_test/post","time":1300904795,"created_on":1300738685,"headers":{},"method":"get","body":"hello world"}
 
 
 3. Deleting a timer
 -------------------
-curl -X DELETE -u username:password http://localhost:8000/timer 
-	-H "Content-type: application/json"
-       	--data '{"key":<<key>>, "timerId":<<timerId>>}'
-
+curl -X DELETE -u username:password http://localhost:8000/timer/<<key>>/<<timerId>>
 
 
 How to use the JSON API of httptimer using jQuery
 =================================================
-<<key>> == Your API key (as integer)
-<<time>> == The unix timestamp when you want to schedule the HTTP request (as integer)
-<<timerId>> == is stored within the PUT-result 
-<<requestUrl>> == The url to request (as string)
-
-
-// 0. Ajax Settings
-// ----------------
-$.ajaxSetup({
-	// url pointing to the running httptimer service
-	url: 'http://localhost:8000/timer',
-	// setting the content-type used for the request
-	contentType : 'application/json',
-	// setting the dataType used within the response
-	dataType : 'json',
-	// enable http basic auth within the requests (username:password)
-	beforeSend : function(jqXHR) {
-		jqXHR.setRequestHeader('Authorization', 'Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
-	},
-});
-
-// 1. Scheduling a new timer 
-// -------------------------
-var data = {
-	// url to be requested by httptimer
-	url : <<requestUrl>>,
-	// http method used for this request
-	method : 'post',
-	// http headers set for this request
-	headers : [], // e.g. [{"User-Agent" : "httptimer"}]
-	// request body
-	body : 'hello world',
-	// api key
-	key : <<key>>
-	// execution time for this request (unix timestamp) 
-	time :  <<time>>
-};
-// Use http PUT for scheduling a new timer
-$.ajax({ type : 'PUT', data : JSON.stringify(data), 
-	success : function(data, textStatus, jqXHR) {
-			alert(data.timerId); // echo the <<timerId>>
-	}
-});
-
-// 2. Retrieving timer information
-// -------------------------------
-var data = {
-	// api key
-	key = <<key>>,
-	// timer id
-	timerId = <<timerId>>
-};
-
-// Use http GET for retrieving the information of a scheduled timer
-$.ajax({ type : 'GET', data : JSON.stringify(data)});
-
-// 3. Deleting a timer
-// -------------------
-var data = {
-	// api key
-	key = <<key>>,
-	// timer id
-	timerId = <<timerId>>
-};
-
-// Use http DELETE for deleting a scheduled timer
-$.ajax({ type : 'DELETE', data : JSON.stringify(data)});
-
-
+Check out the dummy Test Application running on 
+http://localhost:8000/timer_test
 
 
 
@@ -130,12 +59,16 @@ start.sh : simple startup script for running httptimer
   /httptimer_sup.erl : OTP supervisor for the application
   /httptimer_resource.erl : the httptimer Webmachine resource
   /httptimer.hrl : headerfile defining the Timer record
+  /httptimer_helper.erl : helper functions
+  /hex.erl : module for easier handling hex values
   /date_util.erl : helper functions for handling time and date
   /timer_manager.erl : httptimer Backend module
   /timer_store.erl : Mnesia Frontend Module
-  /test_resource.erl : simple Webmachine resource used for some manual tests
+  /test_resource.erl : Webmachine resource used for testing
 /priv
   /dispatch.conf : the Webmachine URL-dispatching table
+/www
+  /test.html : simple javascript test application
 
 You probably want to do one of a couple of things at this point:
 

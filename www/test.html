@@ -1,0 +1,241 @@
+<html>
+<head>
+<title>httptimer test</title>
+<link href="http://alexgorbatchev.com/pub/sh/current/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="http://alexgorbatchev.com/pub/sh/current/scripts/shCore.js" type="text/javascript"></script>
+<script src="http://alexgorbatchev.com/pub/sh/current/scripts/shAutoloader.js" type="text/javascript"></script>
+
+<style>
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    background-color: #eee;
+}
+
+#main {
+    position: relative;
+    width: 1000px;
+    margin: 0 auto;
+
+}
+#header {
+    float:left;
+    height: 100px;
+    width: 1000px;
+}
+h1 {
+    font-size: 40px;
+    color: #333;
+    text-shadow: 4px 4px 4px #bbb;
+}
+#left, #right {
+    float: left;
+    height: 100%;
+    width: 460px;
+    border: 10px solid #ccc;
+    background-color: #fff;
+    padding: 10px;
+}
+
+
+
+</style>
+
+<script>
+var timerId = "";
+var apiKey = "123456";
+var timeoutId = 0;
+
+$(document).ready(function() {
+
+SyntaxHighlighter.autoloader(
+  'js http://alexgorbatchev.com/pub/sh/current/scripts/shBrushJScript.js'
+);
+SyntaxHighlighter.all();
+
+
+function now() {
+	return  Math.round(new Date().getTime() / 1000);
+}
+
+$.ajaxSetup({
+	contentType : 'application/json',
+	dataType : 'json',
+	beforeSend : function(jqXHR) {
+		jqXHR.setRequestHeader('Authorization', 'Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+	},
+});
+function wait_and_show_result(test, time, element){
+	element.text("request is executed in "+time);
+	$.ajax({ type : 'GET', url : 'http://localhost:8000/timer_test/timer/'+test, 
+	success : function(data, textStatus, jqXHR) {
+		element.text(JSON.stringify(data));
+	},
+	error : function(jqXHR, textStatus, errorThrown) {
+		timeoutId = window.setTimeout(wait_and_show_result, 1000, test,time-1,element);
+	}
+	});
+}
+
+
+function cleanup(element) {
+	// delete stored timer tests
+	$.ajax({ type : 'DELETE', url: 'http://localhost:8000/timer_test/timer/post'});
+        
+        timerId = "";
+
+        if(timeoutId != 0) {
+            clearTimeout(timeoutId);
+        }
+        element.text("Press 'HTTP PUT Request in order to receive stats'");
+}
+
+cleanup($('#status'));
+
+function put(element) {
+	var data = {
+		// url to be requested by httptimer
+		url : 'http://localhost:8000/timer_test/post',
+		// http method used for this request
+		method : 'post',
+		// http headers set for this request
+		headers : [],
+		// request body
+		body : 'hello world',
+		// execution time for this request (unix timestamp)
+		time :  now() + 10
+	};
+
+	$.ajax({ type : 'PUT', url: 'http://localhost:8000/timer/'+apiKey, data : JSON.stringify(data), 
+		success : function(data, textStatus, jqXHR) {
+			timerId = data.timerId;
+                        element.text(JSON.stringify(data));
+			wait_and_show_result('post', 10, $('#status')); 
+		},
+                error : function() {
+                        element.text("Cannot Schedule Request");
+                }
+	});
+}
+
+
+
+function cancel(timerId, test) {
+	// cancel httptimer
+	$.ajax({ type : 'DELETE', url: 'http://localhost:8000/timer/'+apiKey+'/'+timerId });
+
+	//cleanup
+        cleanup($('#status'));
+}
+
+function get(timerId, test, element) {
+	// inspect httptimer
+	$.ajax({ type : 'GET', url: 'http://localhost:8000/timer/'+apiKey+'/'+timerId,
+		success : function(data, textStatus, jqXHR) {
+			element.text(JSON.stringify(data));
+		},
+               error : function() {
+                        element.text("Unknown Timer! Is the request still scheduled or already executed?");
+                }
+	});
+}
+
+
+		
+$('#requestPUT').click(function() {put($('#resultPUT'))});
+$('#cleanup').click(function() {cleanup($('#status'))});
+$('#requestGET').click(function() {get(timerId, "post", $('#resultGET'))});
+$('#requestDELETE').click(function() {cancel(timerId, "post")});
+
+
+});
+
+</script>
+
+
+
+</head>
+
+<body>
+<div id="main">
+<div id="header">
+<h1>httptimer test</h1>
+</div>
+<div id="left">
+
+<h2>jQuery AJAX Settings</h2>
+<pre class="brush: js" type="syntaxhighlighter">
+// API Key
+var apiKey = "123456";
+
+// AJAX Settings
+$.ajaxSetup({
+	contentType : 'application/json',
+	dataType : 'json',
+	beforeSend : function(jqXHR) {
+                // already encrypted username:password
+		jqXHR.setRequestHeader('Authorization', 'Basic dXNlcm5hbWU6cGFzc3dvcmQ=');
+	},
+});
+</pre>
+
+<h2>Scheduling a Request</h2>
+<pre class="brush: js" type="syntaxhighlighter">
+var data = {
+	// url to be requested by httptimer
+	url : 'http://localhost:8000/timer_test/post',
+	// http method used for this request
+	method : 'post',
+	// http headers set for this request
+	headers : [],
+	// request body
+	body : 'hello world',
+	// execution time for this request (unix timestamp)
+	time :  now() + 10
+};
+
+$.ajax({ type : 'PUT', 
+        url: 'http://localhost:8000/timer/'+apiKey, 
+        data : JSON.stringify(data)
+});
+</pre>
+<br />
+<input id="requestPUT" type="button" value="HTTP PUT Request" />
+<code id="resultPUT">
+Result of HTTP PUT Request
+</code>
+
+
+<input id="cleanup" type="button" value="cleanup" />
+</div>
+
+<div id="right">
+<h2>Timer Execution Status</h2>
+<code id="status"></code>
+
+<h2>Inspecting a scheduled Timer</h2>
+<pre class="brush: js" type="syntaxhighlighter">
+$.ajax({ type : 'GET', 
+        url: 'http://localhost:8000/timer/'+apiKey+'/'+timerId
+});
+</pre>
+
+<input id="requestGET" type="button" value="HTTP GET Request"/>
+<code id="resultGET">
+Information about the scheduled Timer. As soon as the Timer is executed, this information is not available anymore
+</code>
+
+<h2>Canceling a scheduled Timer</h2>
+<pre class="brush: js" type="syntaxhighlighter">
+$.ajax({ type : 'DELETE', 
+        url: 'http://localhost:8000/timer/'+apiKey+'/'+timerId
+});
+</pre>
+<input id="requestDELETE" type="button" value="cancel"/></p>
+
+</div>
+</div>
+</body>
+
+</html>
